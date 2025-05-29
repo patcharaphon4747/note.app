@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เข้าสู่ระบบ NoteApp 💖</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <style>
+    body {
+      font-family: 'Kanit', sans-serif;
+      text-align: center;
+      background-color: #fff0f5;
+      padding-top: 100px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    h1 {
+      color: #ff1493;
+    }
+  </style>
+</head>
+<body>
+  <h1>📒 Note App น่ารัก</h1>
+  <button onclick="loginWithGoogle()">เข้าสู่ระบบด้วย Google</button>
+
+  <script>
+    function loginWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+          // ไปที่หน้า note.html หลังล็อกอินสำเร็จ
+          window.location.href = "note.html";
+        })
+        .catch((error) => {
+          alert("เกิดข้อผิดพลาด: " + error.message);
+        });
+    }
+
+    // ถ้าล็อกอินอยู่แล้ว ไปหน้า note.html ทันที
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        window.location.href = "note.html";
+      }
+    });
+  </script>
+</body>
+</html>
