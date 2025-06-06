@@ -1,95 +1,124 @@
-let notes = JSON.parse(localStorage.getItem("notes") || "[]");
-let editIndex = -1; // ใช้เก็บ index ของโน้ตที่กำลังแก้ไข
+const auth = firebase.auth();
 
+const userNameEl = document.getElementById("user-name");
+const logoutLink = document.getElementById("logout-link");
+const notification = document.getElementById("notification");
+
+const noteDate = document.getElementById("note-date");
+const noteColor = document.getElementById("note-color");
+const noteTitle = document.getElementById("note-title");
+const noteContent = document.getElementById("note-content");
+const saveNoteBtn = document.getElementById("save-note-btn");
+const searchInput = document.getElementById("search");
+const noteList = document.getElementById("note-list");
+
+function showNotification(message) {
+  notification.textContent = message;
+  notification.style.display = "block";
+  setTimeout(() => {
+    notification.style.display = "none";
+  }, 3000);
+}
+
+// ตรวจสอบสถานะล็อกอิน
+auth.onAuthStateChanged(user => {
+  if (user) {
+    userNameEl.textContent = `👤 ${user.displayName}`;
+    renderNotes();
+  } else {
+    window.location.href = "index.html";
+  }
+});
+
+// ฟังก์ชันบันทึกโน้ตลง localStorage
 function saveNote() {
-  const date = document.getElementById("note-date").value;
-  const color = document.getElementById("note-color").value;
-  const title = document.getElementById("note-title").value;
-  const content = document.getElementById("note-content").value;
-
-  if (title === "" || content === "") {
-    alert("กรุณากรอกชื่อและเนื้อหาโน้ต");
+  if (!noteTitle.value.trim()) {
+    showNotification("กรุณากรอกชื่อโน้ตก่อนนะครับ 😊");
     return;
   }
 
-  const noteData = { date, color, title, content };
+  let notes = JSON.parse(localStorage.getItem("notes") || "[]");
 
-  if (editIndex >= 0) {
-    notes[editIndex] = noteData; // อัปเดตโน้ตเดิม
-    editIndex = -1; // reset index
-  } else {
-    notes.push(noteData); // เพิ่มโน้ตใหม่
-    
-  }
+  const newNote = {
+    id: Date.now(),
+    date: noteDate.value || new Date().toISOString().split("T")[0],
+    color: noteColor.value,
+    title: noteTitle.value.trim(),
+    content: noteContent.value.trim(),
+  };
 
+  notes.push(newNote);
   localStorage.setItem("notes", JSON.stringify(notes));
-  clearForm();
+
+  showNotification("บันทึกโน้ตเรียบร้อยแล้ว! 🎉");
+  clearInputs();
   renderNotes();
 }
 
+// ฟังก์ชันแสดงโน้ตทั้งหมดในหน้า
 function renderNotes() {
-  const list = document.getElementById("note-list");
-  list.innerHTML = "";
+  const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+  noteList.innerHTML = "";
 
-  notes.forEach((note, index) => {
+  notes.forEach(note => {
     const li = document.createElement("li");
     li.className = "note-item";
     li.style.backgroundColor = note.color;
     li.innerHTML = `
-      <strong>${note.title}</strong><br>
-      📅 ${note.date}<br>
-      ${note.content}<br>
-      <button onclick="editNote(${index})">✏️ แก้ไข</button>
-      <button onclick="deleteNote(${index})">🗑 ลบ</button>
+      <strong>${note.title}</strong> <br />
+      <small>วันที่: ${note.date}</small>
+      <p>${note.content}</p>
     `;
-    list.appendChild(li);
+    noteList.appendChild(li);
   });
 }
 
-function deleteNote(index) {
-  if (confirm("ต้องการลบโน้ตนี้หรือไม่?")) {
-    notes.splice(index, 1);
-    localStorage.setItem("notes", JSON.stringify(notes));
-    renderNotes();
-  }
+// ฟังก์ชันล้าง input หลังบันทึก
+function clearInputs() {
+  noteDate.value = "";
+  noteColor.value = "#ffccf9";
+  noteTitle.value = "";
+  noteContent.value = "";
 }
 
-function editNote(index) {
-  const note = notes[index];
-  document.getElementById("note-date").value = note.date;
-  document.getElementById("note-color").value = note.color;
-  document.getElementById("note-title").value = note.title;
-  document.getElementById("note-content").value = note.content;
-  editIndex = index; // ตั้งค่า index เพื่อใช้ในการอัปเดต
-}
-
-function clearForm() {
-  document.getElementById("note-date").value = "";
-  document.getElementById("note-color").value = "#ffccf9";
-  document.getElementById("note-title").value = "";
-  document.getElementById("note-content").value = "";
-}
-
+// ฟังก์ชันค้นหาโน้ต
 function searchNotes() {
-  const keyword = document.getElementById("search").value.toLowerCase();
-  const filtered = notes.filter(n => n.title.toLowerCase().includes(keyword));
-  const list = document.getElementById("note-list");
-  list.innerHTML = "";
+  const filter = searchInput.value.toLowerCase();
+  const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+  noteList.innerHTML = "";
 
-  filtered.forEach((note, index) => {
+  const filtered = notes.filter(note =>
+    note.title.toLowerCase().includes(filter) ||
+    note.content.toLowerCase().includes(filter)
+  );
+
+  filtered.forEach(note => {
     const li = document.createElement("li");
     li.className = "note-item";
     li.style.backgroundColor = note.color;
     li.innerHTML = `
-      <strong>${note.title}</strong><br>
-      📅 ${note.date}<br>
-      ${note.content}<br>
-      <button onclick="editNote(${index})">✏️ แก้ไข</button>
-      <button onclick="deleteNote(${index})">🗑 ลบ</button>
+      <strong>${note.title}</strong> <br />
+      <small>วันที่: ${note.date}</small>
+      <p>${note.content}</p>
     `;
-    list.appendChild(li);
+    noteList.appendChild(li);
   });
 }
 
-// โหลดโน้ตตอนเริ่มต้น
-renderNotes();
+saveNoteBtn.addEventListener("click", saveNote);
+searchInput.addEventListener("input", searchNotes);
+
+logoutLink.addEventListener("click", e => {
+  e.preventDefault();
+  auth.signOut()
+    .then(() => {
+      showNotification("ออกจากระบบเรียบร้อย 🎉 กำลังกลับไปหน้าเข้าสู่ระบบ...");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1500);
+    })
+    .catch(err => {
+      showNotification("เกิดข้อผิดพลาด: " + err.message);
+      console.error(err);
+    });
+});
